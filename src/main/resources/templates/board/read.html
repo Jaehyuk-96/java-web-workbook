@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org"
+      xmlns:layout="http://www.ultrq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/basic.html}">
+<head>
+    <title>Board Read</title>
+</head>
+<div layout:fragment="content">
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    Board Read
+        </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Bno</span>
+                        <input type="text"class="form-control" th:value="${dto.bno}" readonly>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Title</span>
+                        <input type="text"class="form-control" th:value="${dto.title}" readonly>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Content</span>
+                        <textarea class="form-control col-sm-5" rows="5" readonly>
+                            [[${dto.content}]]
+                        </textarea>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Writer</span>
+                        <input type="text"class="form-control" th:value="${dto.writer}" readonly>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">RegDate</span>
+                        <input type="text"class="form-control" th:value="${#temporals.format(dto.regDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">ModDate</span>
+                        <input type="text"class="form-control" th:value="${#temporals.format(dto.modDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
+                    </div>
+                    <div class="my-4">
+                        <div class="float-end" th:with="link = ${pageRequestDTO.getLink()}">
+                            <a th:href="|@{/board/list}?${link}|" class="text-decoration-none">
+                                <button type="button" class="btn btn-primary">List</button>
+                            </a>
+
+                            <a th:href="|@{/board/modify(bno=${dto.bno})}&${link}|" class="text-decoration-none">
+                                <button type="button" class="btn btn-primary">Modify</button>
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="my-4">
+                    <button class="btn btn-info addReplyBtn">ADD REPLY</button>
+                </div>
+                <ul class ="list-group replyList">
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col">
+                <ul class="pagination replyPaging">
+                </ul>
+            </div>
+        </div>
+    <!--    등록 모달창-->
+    <div class="modal registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Register Reply</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Reply Text</span>
+                    <input type="text" class="form-control replyText">
+                </div>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Replyer</span>
+                    <input type="text" class="form-control replyer">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary registerBtn">Register</button>
+                    <button type="button" class="btn btn-outline-dark closeRegisterBtn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+<!--    수정모달창-->
+    <div class="modal modifyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title replyHeader"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Reply Text</span>
+                        <input type="text" class="form-control modifyText">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-info modifyBtn">Modify</button>
+                        <button type="button" class="btn btn-outline-danger removeBtn">Remove</button>
+                        <button type="button" class="btn btn-outline-dark closeModifyBtn">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+</div>
+
+
+
+<script layout:fragment="script" th:inline="javascript">
+
+    async function get1(bno) {
+
+        const result = await axios.get(`/replies/list/${bno}`)
+
+        return result;
+    }
+
+    async function getList({bno, page, size, goLast}) {
+        const result = await axios.get(`/replies/list/${bno}`, {params: {page, size}})
+
+        if(goLast){
+            const total = result.data.total
+            const lastPage = parseInt(Math.ceil(total/size))
+            return getList({bno:bno, page:lastPage, size:size})
+        }
+
+        return result.data
+    }
+
+    async function addReply(replyObj) {
+        const response = await axios.post(`/replies/`, replyObj)
+        return response.data
+    }
+
+    //여기까지 비동기 함수
+
+
+    const bno = [[${dto.bno}]]
+
+    const replyList = document.querySelector('.replyList') //댓글목록DOM
+    const replyPaging = document.querySelector('.replyPaging')
+
+    function printList(dtoList){
+        let str = '';
+
+        if(dtoList && dtoList.length > 0){
+            for (const dto of dtoList) {
+                str += `<li class = "list-group-item d-flex replyItem">
+                    <span class = "col-2">${dto.rno}</span>
+                    <span class = "col-6" data-rno="${dto.rno}">${dto.replyText}</span>
+                    <span class = "col-2">${dto.replyer}</span>
+                    <span class= "col-2">${dto.regDate}</span>
+                </li>`
+            }
+        }
+        replyList.innerHTML = str
+    }
+
+    function printPages(data){//페이지 목록 출력
+
+        //pagination
+        let pageStr = '';
+
+        if(data.prev) {
+            pageStr +=`<li class="page-item"><a class = "page-link" data-page="${data.start-1}">PREV</a></li>`
+        }
+
+        for(let i = data.start; i<= data.end; i++){
+            pageStr +=`<li class="page-item ${i == data.page?"active":""}"><a class="page-link" data-page="${i}">${i}</a></li>`
+        }
+
+        if(data.next) {
+            pageStr += `<li class="page-item"><a class="page-link" data-page="${data.end+1}">NEXT</a></li>`
+        }
+        replyPaging.innerHTML = pageStr
+
+         }
+
+    get1(bno).then(data => {
+        //get1이 반환한 프로미스가 성공적으로 해결되면 데이터를 콘솔에기록
+        console.log(data)
+    }).catch(e => {
+        //프로미스 체인 중에 오류가 발생하면 이 블록의 코드 실행
+        console.error(e)
+    })
+
+    function printReplies(page, size, goLast) {
+
+        getList({bno, page, size, goLast}).then(
+
+            data => {console.log(data)
+                printList(data.dtoList)//목록처리
+                     printPages(data)//페이지처리
+            }
+        ).catch(e=> {
+            console.error(e)
+        })
+    }
+
+    printReplies(1,10, true)//무조건 호출
+
+    //여기까지가 페이징 처리 및 댓글목록
+
+    const registerModal = new bootstrap.Modal(document.querySelector(".registerModal"))
+
+    const registerBtn = document.querySelector(".registerBtn")
+    const replyText = document.querySelector(".replyText")
+    const replyer = document.querySelector(".replyer")
+    const closeRegisterBtn = document.querySelector(".closeRegisterBtn")
+
+    document.querySelector(".addReplyBtn").addEventListener("click", function(e){
+        registerModal.show();
+    }, false)
+
+    closeRegisterBtn.addEventListener("click", function (e){
+        registerModal.hide()
+    }, false)
+
+    registerBtn.addEventListener("click", function(e){
+        const replyObj = {
+            bno:bno,
+            replyText:replyText.value,
+            replyer:replyer.value
+        }
+        addReply(replyObj).then(result => {
+            registerModal.hide()
+            replyText.value = ''
+            replyer.value =''
+            printReplies(1,10, true)//댓글목록을 다시 갱신해줌 등록후
+        }).catch(e => {
+            alert("Exception...")// 오류발생시 예외알림
+        })
+    }, false)
+
+    //<ul>을 대상으로 이벤트 리스너를 등록하는 방식으로 번호 클릭
+
+    let page = 1
+    let size = 10
+
+    replyPaging.addEventListener("click", function(e){
+        e.preventDefault()
+        e.stopPropagation()
+
+        const target = e.target
+
+        if(!target || target.tagName !='A') {
+            return
+        }
+
+        const pageNum = target.getAttribute("data-page")//누른 페이지번호가져옴
+        page = pageNum
+        printReplies(page,size)
+    }, false)
+
+    //여기까지가 페이지 번호 클릭
+
+    async function getReply(rno) {//특정 댓글조회
+        const response = await axios.get(`/replies/${rno}`)
+        return response.data
+    }
+
+    async function modifyReply(replyObj) {
+        const response = await axios.put(`/replies/${replyObj.rno}`, replyObj)
+        return response.data
+    }
+
+    const modifyModal = new bootstrap.Modal(document.querySelector(".modifyModal"))
+
+    const replyHeader = document.querySelector(".replyHeader")
+
+    const modifyText = document.querySelector(".modifyText")
+
+    const modifyBtn = document.querySelector(".modifyBtn")
+
+    const removeBtn = document.querySelector(".removeBtn")
+
+    const closeModifyBtn = document.querySelector(".closeModifyBtn")
+
+    replyList.addEventListener("click", function (e){
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        const target = e.target
+
+        if(!target || target.tagName != 'SPAN'){
+            return
+        }
+
+        const rno = target.getAttribute("data-rno")
+
+        if(!rno){
+            return
+        }
+
+        getReply(rno).then(reply => {
+            console.log(reply)
+            replyHeader.innerHTML = reply.rno
+            modifyText.value = reply.replyText
+            modifyModal.show()
+        }).catch (e=> alert('error'))
+    }, false)
+
+    modifyBtn.addEventListener("click", function(e){
+        const replyObj = {
+            bno:bno,
+            rno:replyHeader.innerHTML,
+            replyText:modifyText.value
+        }
+        modifyReply(replyObj).then(result => {
+            alert(result.rno+'댓글이 수정 되었습니다.')
+            replyText.value = ''
+            modifyModal.hide()
+            printReplies(page,size)//수정후 다시 그페이지를 볼수있게 printReplies 호출
+        }).catch(e => {
+            console.log(e)
+        }, false)
+
+        closeModifyBtn.addEventListener("click", function(e){
+            modifyModal.hide()
+        },false)
+    })
+
+    async function removeReply(rno) {
+        const response = await axios.delete(`/replies/${rno}`)
+        return response.data
+    }
+
+    removeBtn.addEventListener("click", function(e) {
+        removeReply(replyHeader.innerHTML).then(result => {//위에 replyHeader.innerHtml을 reply.rno로 해놓음
+            alert(result.rno + '댓글이 삭제되었습니다.')
+            replyText.value = ''
+            modifyModal.hide()
+
+            page = 1
+
+            printReplies(page, size)
+
+        }).catch(e => {
+            console.log(e)
+        })
+    },false)
+
+
+
+</script>
