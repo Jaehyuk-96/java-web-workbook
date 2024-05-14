@@ -25,7 +25,8 @@
 
                         <div class = "input-group mb-3">
                             <span class="input-group-text">Writer</span>
-                            <input type="text" name="writer" class="form-control" placeholder="Writer">
+                            <input type="text" name="writer" class="form-control" placeholder="Writer"
+                            th:value="${#authentication.principal.username}" readonly>
                         </div>
 
                         <div class="my-4">
@@ -55,5 +56,12 @@
         }
         alert(errorMsg)
     }
+
+    const auth =[[${#authentication.principal}]]
+
+    const errors = [[${errors}]]
+
+    console.log(errors)
+
 
 </script>

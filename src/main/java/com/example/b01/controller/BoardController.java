@@ -9,6 +9,7 @@ import com.example.b01.service.BoardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -40,6 +41,7 @@ public class BoardController {
 
     }
 
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/register")
     public void registerGet(){
 
@@ -64,6 +66,7 @@ public class BoardController {
         return "redirect:/board/list";
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping({"/read", "/modify"})
     public void read(Long bno, PageRequestDTO pageRequestDTO, Model model) {
 
@@ -75,6 +78,8 @@ public class BoardController {
 
     }
 
+    @PreAuthorize("principal.username == #boardDTO.writer")//principal.username은 현재 로그인된사용자 boardDTO는 현재파라미터가 수집된 boardDTO
+    //이를 통해서 다른사용자가 작성한 게시글을 수정하는 것을 방지
     @PostMapping("/modify")
     public String modify(PageRequestDTO pageRequestDTO,
                          @Valid BoardDTO boardDTO,
