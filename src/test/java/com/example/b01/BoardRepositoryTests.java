@@ -2,6 +2,7 @@ package com.example.b01;
 
 
 import com.example.b01.domain.Board;
+import com.example.b01.domain.BoardImage;
 import com.example.b01.dto.BoardListReplyCountDTO;
 import com.example.b01.repository.BoardRepository;
 import lombok.extern.log4j.Log4j2;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 @SpringBootTest
@@ -134,5 +136,38 @@ public class BoardRepositoryTests {
         log.info(result.hasPrevious()+":"+result.hasNext());
 
         result.getContent().forEach(board -> log.info(board));
+    }
+
+
+    @Test
+    public void testInsertWithImages() {
+
+        Board board = Board.builder()
+                .title("Image Test")
+                .content("첨부파일 테스트")
+                .writer("tester")
+                .build();
+
+    for(int i =0; i<3; i++) {
+            board.addImage(UUID.randomUUID().toString(), "file" +i +".jpg");
+        }
+
+    boardRepository.save(board);
+    }
+
+    @Test
+    public void testReadWithImages() {
+
+        Optional<Board> result = boardRepository.findById(1L);
+
+        Board board = result.orElseThrow();
+
+        log.info(board);
+        log.info("--------------");
+        log.info(board.getImageSet());
+
+        for(BoardImage boardImage : board.getImageSet()) {
+            log.info(boardImage);
+        }
     }
 }
